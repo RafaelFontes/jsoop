@@ -1,21 +1,39 @@
-var g  = (typeof(window)!='undefined')?window:GLOBAL;
+var g  = (typeof(window) != 'undefined') ? window : GLOBAL;
+
+/**
+ * @param p Object source
+ * @param n Attribute name
+ * @param c Attribute descriptor
+ */
+function def(p,n,c)
+{
+      Object.defineProperty(p,n,c);
+};
+/**
+ * @param p Object source
+ * @param c Object with multiple Attributes
+ */
+function defs(p,c)
+{
+    Object.defineProperties(p,c);
+}
 
 /**
  * @class Class
  * @constructor
  */
-Object.defineProperty(g, 'Class',{
+def(g, 'Class',{
     __proto__: Function.prototype,
     value : new Function,
     freeze: true
 });
 
-Object.defineProperty(Class,
+def(Class,
     'toString',
     { freeze: true, value : function(){ return 'abstract class Class() { [not native code] }' } }
 );
 
-Object.defineProperties(
+defs(
     Class,
     {
         create:
@@ -34,7 +52,7 @@ Object.defineProperties(
 
                 if (g[name]) throw new TypeError('Class '+name+' already declared.');
 
-                Object.defineProperty(g, name,{
+                def(g, name,{
                     value : new Function('if (this.parent) { this.parent = new this.parent();  } if (this.init) { this.init.apply(this, arguments); }; '),
                     freeze: true
                 });
@@ -72,7 +90,7 @@ Object.defineProperties(
                 }
 
 
-                Object.defineProperty(g[name],
+                def(g[name],
                     'toString',
                     { freeze: true, value : function(){ return 'public class '+name+strExt+'() { [not native code] }' } }
                 );
@@ -122,7 +140,7 @@ Object.defineProperties(
 
                     var writable = !(typeof(value)=='function');
 
-                    Object.defineProperty(obj.prototype, field,
+                    def(obj.prototype, field,
                         {
                             writable : writable,
                             value: value
@@ -139,23 +157,35 @@ Object.defineProperties(
 
                 }
 
-                Object.defineProperty(obj, 'getMethods',
+                def(obj,
+                'getMethods',
+                {
+                    freeze : true,
+                    value : function getMethods()
                     {
-                        freeze : true,
-                        value : function getMethods()
-                        {
-                            return methods;
-                        }
-                    });
+                        return methods;
+                    }
+                });
 
-                Object.defineProperty(obj, 'getFields',
+                def(obj,
+                'getFields',
+                {
+                    freeze : true,
+                    value : function getFields()
                     {
-                        freeze : true,
-                        value : function getFields()
-                        {
-                            return fields;
-                        }
-                    });
+                        return fields;
+                    }
+                });
+
+                def(obj,
+                'getAnnotations',
+                {
+                    freeze : true,
+                    value : function getAnnotations()
+                    {
+                        return annotations;
+                    }
+                });
             }
         }
     }
