@@ -1,4 +1,4 @@
-require('jsoop');
+require('./jsoop');
 
 /**
  * @class Controller
