@@ -7,8 +7,15 @@ var g  = (typeof(window) != 'undefined') ? window : GLOBAL;
  */
 function def(p,n,c)
 {
+
+    if (!n) return;
+    try {
       Object.defineProperty(p,n,c);
-};
+    } catch(ex)
+    {
+      throw "Problem setting: " + JSON.stringify(p) + "-" + JSON.stringify(n) + "-" + JSON.stringify(c);
+    }
+}
 /**
  * @param p Object source
  * @param c Object with multiple Attributes
@@ -49,6 +56,7 @@ defs(
             {
                 var exts = name.split("::");
                 name  = exts.shift().trim();
+
 
                 if (g[name]) throw new TypeError('Class '+name+' already declared.');
 
@@ -95,6 +103,7 @@ defs(
                     { freeze: true, value : function(){ return 'public class '+name+strExt+'() { [not native code] }' } }
                 );
 
+
                 if (config) this.build(g[name], config, inheritance);
             }
         },
@@ -110,12 +119,11 @@ defs(
             {
                 var methods = inheritance.methods;
                 var fields = inheritance.fields;
-                var annotations = [];
 
                 for(var field in config)
                 {
+                    var annotations = {};
                     if (!config.hasOwnProperty(field)) continue;
-
                     if (field == 'constant' ||
                         field == 'static')
                     {
@@ -124,8 +132,8 @@ defs(
                     }
 
                     var value = config[field];
-                    var arrAnnotations = field.replace(/\s+/g,'\n').split("\n");
 
+                    var arrAnnotations = field.split(";");
                     //@TODO : build annotations
                     /*
                      * Annotation Syntax :
@@ -136,28 +144,60 @@ defs(
                      * });
                      */
 
-                    field = arrAnnotations.pop();
+                    field = arrAnnotations.pop().trim().replace(/\\s+/g,"");
+
+                    arrAnnotations.forEach(function(a)
+                    {
+                        var aargs = a.trim().substr(1).split(" ");
+                        annotations[aargs.shift()] = aargs.join(" ");
+                    });
 
                     var writable = !(typeof(value)=='function');
 
-                    def(obj.prototype, field,
+                    if (value !== null)
+                    {
+                        def(value, 'annotations',
                         {
-                            writable : writable,
-                            value: value
+                            freeze: true,
+                            value : annotations
                         });
+                    }
+
+                    def(obj.prototype, field,
+                    {
+                        writable : writable,
+                        value: value
+                    });
 
                     if (!writable)
                     {
-                        methods[field] = obj.prototype[field];
+                        def(methods, field,{
+                            freeze : true,
+                            enumerable : true,
+                            value : obj.prototype[field]
+                        })
                     }
                     else
                     {
-                        fields[field] = obj.prototype[field];
+                        def(fields, field,{
+                            freeze : true,
+                            enumerable : true,
+                            value : obj.prototype[field]
+                        });
                     }
-
                 }
 
                 def(obj,
+                'getMethods',
+                {
+                    freeze : true,
+                    value : function getMethods()
+                    {
+                        return methods;
+                    }
+                });
+
+                def(obj.prototype,
                 'getMethods',
                 {
                     freeze : true,
@@ -177,16 +217,17 @@ defs(
                     }
                 });
 
-                def(obj,
-                'getAnnotations',
+                def(obj.prototype,
+                'getFields',
                 {
                     freeze : true,
-                    value : function getAnnotations()
+                    value : function getFields()
                     {
-                        return annotations;
+                        return fields;
                     }
                 });
             }
         }
     }
+
 );
